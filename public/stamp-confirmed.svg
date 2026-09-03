@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <filter id="stamp-grain-c" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0"/>
+      <feComposite operator="in" in2="SourceGraphic"/>
+    </filter>
+    <path id="arc-top" d="M 100 34 a 66 66 0 0 1 0 132 a 66 66 0 0 1 0 -132" fill="none"/>
+  </defs>
+  <g transform="rotate(-8 100 100)" filter="url(#stamp-grain-c)">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="#C05A3E" stroke-width="6" opacity="0.92"/>
+    <circle cx="100" cy="100" r="76" fill="none" stroke="#C05A3E" stroke-width="2" opacity="0.75"/>
+    <text font-family="'Noto Serif SC','Songti SC',serif" font-weight="700" font-size="26" fill="#C05A3E" opacity="0.92">
+      <textPath href="#arc-top" startOffset="50%" text-anchor="middle">综测助手 · 已核对</textPath>
+    </text>
+    <text x="100" y="106" text-anchor="middle" font-family="'Noto Serif SC','Songti SC',serif" font-weight="900" font-size="34" fill="#C05A3E" opacity="0.95">已确认</text>
+    <path d="M 78 128 l 12 12 l 34 -30" fill="none" stroke="#C05A3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" transform="translate(0 6)"/>
+  </g>
+</svg>

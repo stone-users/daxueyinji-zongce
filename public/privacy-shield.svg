@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+  <!-- privacy-shield: laptop with lock, crossed-out cloud -->
+  <rect width="480" height="360" fill="none"/>
+  <!-- soft backdrop blob -->
+  <ellipse cx="240" cy="190" rx="200" ry="140" fill="#2E5A87" opacity="0.07"/>
+  <!-- laptop body -->
+  <g>
+    <rect x="110" y="80" width="260" height="170" rx="14" fill="#FFFFFF" stroke="#22303E" stroke-width="5"/>
+    <rect x="126" y="96" width="228" height="138" rx="8" fill="#F4EEE3"/>
+    <!-- screen content lines -->
+    <rect x="146" y="116" width="120" height="10" rx="5" fill="#A9B2BC" opacity="0.55"/>
+    <rect x="146" y="136" width="88" height="10" rx="5" fill="#A9B2BC" opacity="0.4"/>
+    <rect x="146" y="186" width="140" height="10" rx="5" fill="#A9B2BC" opacity="0.35"/>
+    <!-- lock on screen -->
+    <g>
+      <rect x="272" y="140" width="64" height="52" rx="10" fill="#2E5A87"/>
+      <path d="M 286 140 v -14 a 18 18 0 0 1 36 0 v 14" fill="none" stroke="#2E5A87" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="304" cy="164" r="7" fill="#FAF7F1"/>
+      <rect x="301" y="164" width="6" height="14" rx="3" fill="#FAF7F1"/>
+    </g>
+    <!-- keyboard base -->
+    <path d="M 84 262 h 312 l 18 34 a 10 10 0 0 1 -9 14 H 75 a 10 10 0 0 1 -9 -14 z" fill="#3D4C5C"/>
+    <rect x="212" y="268" width="56" height="8" rx="4" fill="#6E7B88"/>
+  </g>
+  <!-- crossed-out cloud -->
+  <g transform="translate(356 60)">
+    <path d="M 20 46 a 16 16 0 0 1 3 -31 a 20 20 0 0 1 38 -6 a 15 15 0 0 1 15 27 l -1 10 z" fill="#FFFFFF" stroke="#5E8C61" stroke-width="5" stroke-linejoin="round"/>
+    <line x1="4" y1="6" x2="76" y2="58" stroke="#5E8C61" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <!-- green location pin dot -->
+  <circle cx="120" cy="306" r="6" fill="#5E8C61"/>
+</svg>
