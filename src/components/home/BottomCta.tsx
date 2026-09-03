@@ -1,77 +1,67 @@
-import { motion } from 'framer-motion'
 import { Link } from 'react-router'
+import { motion } from 'framer-motion'
+import type { Variants } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 
-/** S7 · 底部 CTA：印章渐变背景 + 双按钮 */
+const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number]
+
+const chars: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.03 } },
+}
+const char: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+}
+
+/** S7 · 底部 CTA */
 export default function BottomCta() {
   return (
-    <section className="relative overflow-hidden py-24">
-      {/* 背景：纸色 + 中央暖光晕 */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 60%, rgba(192,90,62,0.10) 0%, transparent 60%)',
-        }}
-      />
-      <div className="relative mx-auto max-w-[760px] px-4 text-center sm:px-6">
-        <motion.span
-          className="label-mono text-seal"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          GET STARTED
-        </motion.span>
+    <section className="py-24">
+      <div className="mx-auto max-w-[1080px] px-4 text-center sm:px-6">
         <motion.h2
-          className="mt-4 text-display-lg text-ink-900"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+          variants={chars}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.5 }}
+          className="text-[28px] font-bold leading-[1.2] tracking-title text-ink-900 sm:text-display-lg"
         >
-          今年的综测，从容一点。
+          {Array.from('今年的综测，十分钟填完。').map((ch, i) => (
+            <motion.span key={i} variants={char} className="inline-block">
+              {ch}
+            </motion.span>
+          ))}
         </motion.h2>
-        <motion.p
-          className="mx-auto mt-4 max-w-md text-body-lg text-ink-500"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        >
-          平均 8 分钟完成问卷，导出逐项核对清单。
-        </motion.p>
+        <p className="mt-4 text-body-lg text-ink-500">从选择你的学院开始。</p>
+
         <motion.div
-          className="mt-8 flex flex-wrap items-center justify-center gap-3"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: EASE }}
+          className="mt-8"
         >
-          <Link
-            to="/wizard"
-            className="inline-flex items-center gap-2 rounded-[12px] bg-primary px-7 py-3.5 text-[16px] font-medium text-primary-foreground shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:bg-primary-deep hover:shadow-card-hover"
-          >
-            开始填报
-            <ArrowRight className="h-4.5 w-4.5" />
-          </Link>
-          <Link
-            to="/help"
-            className="rounded-[12px] border border-line bg-card px-7 py-3.5 text-[16px] font-medium text-ink-700 transition-colors hover:bg-paper-100"
-          >
-            了解隐私与安全
-          </Link>
+          <motion.div whileInView="show" viewport={{ once: true }} className="inline-block">
+            <motion.div
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Link
+                to="/wizard"
+                className="group inline-flex items-center gap-2 rounded-[10px] bg-primary px-10 py-4 text-[17px] font-medium text-primary-foreground shadow-card transition-colors hover:bg-primary-deep"
+              >
+                开始填报
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+            </motion.div>
+          </motion.div>
         </motion.div>
-        <motion.p
-          className="mt-6 text-caption text-ink-300"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          无需注册 · 数据不出浏览器
-        </motion.p>
+
+        <p className="mt-6 text-caption text-ink-500">
+          <Link to="/help" className="underline decoration-line underline-offset-4 transition-colors hover:text-primary">
+            帮助与隐私说明 →
+          </Link>
+        </p>
       </div>
     </section>
   )
