@@ -378,7 +378,7 @@ function matrixToQuestions(ctx: Ctx, mod: PackModule, sec: PackSection): Questio
     matrix,
     participationRule: str(sec.participation_rule),
     awardRule: str(sec.award_rule),
-    teamRuleText: str(typeof === 'string' ? sec.team_rule : (sec.team_rule as Record<string, unknown>)?.rule),
+    teamRuleText: str(typeof sec.team_rule === 'string' ? sec.team_rule : (sec.team_rule as Record<string, unknown>)?.rule),
     roleMultiplier: sec.role_multiplier as Record<string, number> | undefined,
     awardRankMap: sec.award_rank_map as Record<string, string> | undefined,
     whitelistRequired: sec.whitelist_required === true,
@@ -568,7 +568,7 @@ export function pendingReviewNotes(pack: RulePack): string[] {
       }
     }
   }
-  // 已校对的包：review_resolution 里 ⏳项对学生仍有提示价值（如 zbdm 待复核、外部文档待获取）
+  // 已校对的包：review_resolution 里 ⏳ 保留项对学生仍有提示价值（如 zbdm 待复核、外部文档待获取）
   if (Array.isArray(pack.review_resolution)) {
     for (const x of pack.review_resolution) {
       if (typeof x === 'string' && x.trim().startsWith('⏳')) out.push(x.trim())
