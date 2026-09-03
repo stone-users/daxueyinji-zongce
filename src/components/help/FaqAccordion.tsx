@@ -1,91 +1,89 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
-import SectionHeading from './SectionHeading'
-import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
+import { Plus } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import SectionHeading from '@/components/help/SectionHeading'
 
-const FAQS: { q: string; a: string }[] = [
+const FAQS = [
   {
-    q: '为什么区间分不是确定的数字？',
-    a: '有些加分项细则只给了区间（如“无偿献血每次加 2–4 分”），最终分值由评议小组在区间内定夺。工具会给出建议分与区间参考，并在导出清单中标注，绝不替你“四舍五入”。',
+    q: '我的数据会被上传吗？',
+    a: '不会。作答记录存在浏览器的 localStorage 里，佐证图片存在 IndexedDB 里，全部在你的设备本地。这个网站没有账号系统、没有后端数据库，也没有任何追踪脚本——我们想看也看不到。',
   },
   {
-    q: '手动定级的比赛会怎么样？',
-    a: '目录未收录的比赛由你手动选择级别，系统按所选级别计分，同时打上「待评议确认」标记。评议小组复核后可能调整，这与线下纸质填报的流程一致。',
+    q: '换电脑 / 清浏览器后会丢吗？',
+    a: '会。浏览器本地存储一旦清除就没了。所以在换设备或大扫除之前，请先在导出清单页“导出暂存备份”，得到一个 JSON 备份文件；到新设备后导入即可接力。重要阶段建议随手导出一份。',
   },
   {
-    q: '填写中途关掉了浏览器怎么办？',
-    a: '进度会自动暂存在浏览器本地（localStorage），再次打开向导时可从上次的位置继续。清空浏览器站点数据会删除暂存，建议及时导出清单 JSON 备份。',
+    q: '系统建议的比赛级别和我想的不一样？',
+    a: '可以修改。系统建议只是按细则口径给出的参考，你可以在作答时直接调整；调整后该项会在清单中标记为「待评议确认」。最终级别以评议小组认定为准——这是固定规则，工具不做承诺。',
   },
   {
-    q: '佐证图片会不会被上传？',
-    a: '不会。图片保存在浏览器 IndexedDB 中，仅用于导出清单时的核对提醒；打印的纸质清单不包含图片，佐证原件请按学院要求备查。',
+    q: '不上传佐证图片会有影响吗？',
+    a: '不阻塞导出。佐证图片只是给你自己对照用的，不会离开本机；没传佐证的条目会在清单里标记「待补佐证」，提醒你按学院要求备好原件备查。',
   },
   {
-    q: '规则包多久更新一次？',
-    a: '学院发布新版细则后我们会尽快拆解并更新对应规则包，版本号与适用学年标注在规则包内。若你评价的学年与规则包适用学年不符，工具会在问卷开始前弹出强提示。',
+    q: '我们学院什么时候支持？',
+    a: '规则包按需求热度排队：整理一份学院细则需要逐条拆解成问卷，工作量不小。在下方登记你的学院和邮箱，同院同学登记越多，排队越靠前。登记信息只存在你的浏览器本地。',
   },
   {
-    q: '我的学院还不支持，怎么办？',
-    a: '在向导第一步选择「其他学院（排队中）」并登记邮箱，拆解到你的学院时会第一时间通知你；也欢迎以志愿者身份参与本学院规则包的整理（见「关于我们」）。',
+    q: '分数算错了怎么办？',
+    a: '先别慌：每道题下方都可以展开「细则原文依据」，对照原文核对一遍。如果确认是规则包的错误，请通过页面底部的登记邮箱联系我们并注明学院与条目，核实后我们会更新规则包版本并在帮助页公示。',
   },
 ]
 
-function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.35, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[14px] border border-line bg-card shadow-card"
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-      >
-        <span className="font-serif text-[17px] font-bold leading-snug text-ink-900">{q}</span>
-        <ChevronDown
-          className={cn('h-4 w-4 shrink-0 text-ink-500 transition-transform duration-200', open && 'rotate-180')}
-        />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <p className="px-5 pb-5 text-body leading-relaxed text-ink-700">{a}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  )
-}
-
-/** S6 · 常见问题（FAQ）手风琴 */
+/** S5 · 常见问题：手风琴，展开高度过渡 + 图标旋转 */
 export default function FaqAccordion() {
   return (
-    <motion.section
-      id="faq"
-      className="scroll-mt-24"
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <SectionHeading overline="FAQ" title="常见问题" />
-      <div className="mt-8 space-y-3">
-        {FAQS.map((f, i) => (
-          <FaqItem key={f.q} q={f.q} a={f.a} index={i} />
-        ))}
-      </div>
-    </motion.section>
+    <section id="faq" className="scroll-mt-24">
+      <SectionHeading
+        index="05"
+        title="常见问题"
+        lead="问得最多的六件事，先在这里说清楚。"
+      />
+
+      <motion.div
+        className="mt-8 rounded-[16px] border border-line bg-card px-6 shadow-card"
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Accordion type="single" collapsible>
+          {FAQS.map((faq, i) => (
+            <motion.div
+              key={faq.q}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <AccordionItem value={`faq-${i}`} className="border-line">
+                <AccordionTrigger className="group py-5 text-left text-[16px] font-medium text-ink-900 hover:no-underline [&>svg]:hidden">
+                  <span className="flex flex-1 items-baseline gap-3">
+                    <span className="font-mono text-[11px] tracking-mono text-ink-300">
+                      Q{i + 1}
+                    </span>
+                    {faq.q}
+                  </span>
+                  <span className="self-center">
+                    <Plus
+                      className="h-4 w-4 text-ink-500 transition-transform duration-300 group-data-[state=open]:rotate-45"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-body text-ink-700 [&>div]:pb-5 [&>div]:pl-8">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            </motion.div>
+          ))}
+        </Accordion>
+      </motion.div>
+    </section>
   )
 }
