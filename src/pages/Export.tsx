@@ -22,7 +22,7 @@ import {
 /** 打印样式：隐藏导航/按钮，表格全宽，页脚加免责首行 */
 const PRINT_CSS = `
 @media print {
-  header, footer, .print\:hidden { display: none !important; }
+  header, footer, .print\\:hidden { display: none !important; }
   body { background: #fff !important; background-image: none !important; }
   main { padding: 0 !important; }
   .export-root { max-width: 100% !important; padding: 0 !important; }
