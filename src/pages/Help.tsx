@@ -28,7 +28,7 @@ function PageHeader() {
             }}
             aria-hidden="true"
           >
-            {ch === ' ' ? ' ' : ch}
+            {ch === ' ' ? ' ' : ch}
           </motion.span>
         ))}
       </h1>
