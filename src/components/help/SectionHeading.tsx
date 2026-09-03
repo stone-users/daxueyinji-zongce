@@ -1,18 +1,24 @@
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
 
-/** 章节标题：label-mono 英文小标 + 衬线大标题 + 印章红 40px 下划线 */
-export default function SectionHeading({
-  overline,
-  title,
-}: {
-  overline?: string
-  title: ReactNode
-}) {
+interface SectionHeadingProps {
+  index: string
+  title: string
+  lead?: ReactNode
+}
+
+/** 帮助页各区块统一的标题组：label-mono 编号 + title-md 标题 + 可选导语 */
+export default function SectionHeading({ index, title, lead }: SectionHeadingProps) {
   return (
-    <div>
-      {overline && <span className="label-mono text-ink-500">{overline}</span>}
-      <h2 className="mt-2 text-title-md text-ink-900">{title}</h2>
-      <span className="mt-3 block h-[3px] w-10 rounded-full bg-seal" />
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span className="label-mono text-seal">SECTION {index}</span>
+      <h2 className="mt-3 text-title-md text-ink-900">{title}</h2>
+      {lead && <p className="mt-4 text-body-lg text-ink-700">{lead}</p>}
+    </motion.div>
   )
 }
