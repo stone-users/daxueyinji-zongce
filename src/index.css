@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 47% 96%; /* paper-50 #FAF7F1 */
+    --foreground: 210 29% 19%; /* ink-900 #22303E */
+    --card: 0 0% 100%;
+    --card-foreground: 210 29% 19%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 29% 19%;
+    --primary: 210 49% 35%; /* #2E5A87 */
+    --primary-foreground: 40 47% 96%;
+    --secondary: 39 36% 92%; /* paper-100 */
+    --secondary-foreground: 210 29% 19%;
+    --muted: 39 36% 92%;
+    --muted-foreground: 214 11% 48%; /* ink-500 */
+    --accent: 39 36% 92%;
+    --accent-foreground: 210 29% 19%;
+    --destructive: 12 48% 47%; /* danger #B0543F */
+    --destructive-foreground: 40 47% 96%;
+    --border: 41 31% 85%; /* line #E3DCCB */
+    --input: 41 31% 85%;
+    --ring: 210 49% 35%;
+    --radius: 0.625rem;
+    --sidebar-background: 39 36% 92%;
+    --sidebar-foreground: 210 29% 19%;
+    --sidebar-primary: 210 49% 35%;
+    --sidebar-primary-foreground: 40 47% 96%;
+    --sidebar-accent: 41 31% 85%;
+    --sidebar-accent-foreground: 210 29% 19%;
+    --sidebar-border: 41 31% 85%;
+    --sidebar-ring: 210 49% 35%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper-50 text-ink-700 font-sans antialiased;
+    background-image: url('/paper-noise.png');
+    background-repeat: repeat;
+    background-attachment: fixed;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-ink-900;
+    letter-spacing: 0.02em;
+  }
+
+  ::selection {
+    background: #F3E0D6;
+    color: #22303E;
+  }
+
+  :focus-visible {
+    outline: 2px solid #2E5A87;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  /* 营销版 Hero 双光晕纸面背景 */
+  .hero-glow {
+    background-image:
+      radial-gradient(ellipse at 70% 20%, #F3E7D3 0%, transparent 55%),
+      radial-gradient(ellipse at 15% 80%, rgba(46, 90, 135, 0.08) 0%, transparent 50%);
+  }
+
+  /* 英文 mono 小标签 */
+  .label-mono {
+    @apply font-mono uppercase;
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
