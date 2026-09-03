@@ -1,117 +1,183 @@
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ArrowRight, FileText, Stamp, FolderCheck } from 'lucide-react'
+import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'framer-motion'
+import type { Variants } from 'framer-motion'
+import { ArrowRight, BadgeCheck, HardDrive, UserX } from 'lucide-react'
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number]
+const POP = [0.34, 1.4, 0.64, 1] as [number, number, number, number]
 
-const FLOAT_CARDS = [
-  {
-    icon: FileText,
-    title: '40 页细则 PDF',
-    sub: '逐条拆解为结构化规则包',
-    className: 'left-[2%] top-[16%] hidden xl:flex',
-    delay: 0.5,
-  },
-  {
-    icon: Stamp,
-    title: '已确认 ✓',
-    sub: '全员基本分 · 一键盖章',
-    className: 'right-[3%] top-[22%] hidden xl:flex',
-    delay: 0.65,
-    seal: true,
-  },
-  {
-    icon: FolderCheck,
-    title: '导出清单',
-    sub: '值 · 节点 · 佐证一一对应',
-    className: 'bottom-[14%] left-[6%] hidden xl:flex',
-    delay: 0.8,
-  },
+/** 主标题两段，朱砂强调片段 */
+const TITLE_LINES: { text: string; accent?: boolean }[][] = [
+  [{ text: '几十页', accent: true }, { text: '的综测细则，' }],
+  [{ text: '变成' }, { text: '几分钟', accent: true }, { text: '的问答。' }],
 ]
 
-/** S1 · Hero：大标题 + 副标 + CTA + 漂浮卡 + 双光晕纸面 */
-export default function Hero() {
+const charContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.04, delayChildren: 0.1 } },
+}
+const charItem: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+}
+
+function SplitLines() {
   return (
-    <section className="hero-glow relative overflow-hidden">
-      <div className="mx-auto max-w-marketing px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24">
-        <div className="mx-auto max-w-[760px] text-center">
+    <motion.h1
+      className="text-[34px] font-black leading-[1.15] tracking-title-lg text-ink-900 sm:text-display-xl"
+      variants={charContainer}
+      initial="hidden"
+      animate="show"
+    >
+      {TITLE_LINES.map((line, li) => (
+        <span key={li} className="block">
+          {line.map((seg, si) => (
+            <span key={si} className={seg.accent ? 'text-seal' : undefined}>
+              {Array.from(seg.text).map((ch, ci) => (
+                <motion.span key={ci} className="inline-block" variants={charItem}>
+                  {ch}
+                </motion.span>
+              ))}
+            </span>
+          ))}
+        </span>
+      ))}
+    </motion.h1>
+  )
+}
+
+/** 载入 1.2s 后盖章砸下，随后每 6s 极轻微浮动；随鼠标视差移动 */
+function FloatingStamp() {
+  const mx = useMotionValue(0)
+  const my = useMotionValue(0)
+  const x = useSpring(useTransform(mx, [-1, 1], [-8, 8]), { stiffness: 60, damping: 15 })
+  const y = useSpring(useTransform(my, [-1, 1], [-6, 6]), { stiffness: 60, damping: 15 })
+  const [stamped, setStamped] = useState(false)
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setStamped(true), 1200)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      mx.set((e.clientX / window.innerWidth) * 2 - 1)
+      my.set((e.clientY / window.innerHeight) * 2 - 1)
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [mx, my])
+
+  return (
+    <motion.div style={{ x, y }} className="absolute -bottom-4 -right-2 w-24 sm:w-28">
+      <motion.div
+        initial={{ opacity: 0, scale: 1.6, rotate: -20 }}
+        animate={
+          stamped
+            ? { opacity: 1, scale: 1, rotate: -8 }
+            : { opacity: 0, scale: 1.6, rotate: -20 }
+        }
+        transition={{ duration: 0.28, ease: POP }}
+      >
+        <motion.img
+          src="/stamp-confirmed.svg"
+          alt=""
+          animate={stamped ? { y: [0, -3, 0] } : undefined}
+          transition={{ duration: 2, repeat: Infinity, repeatDelay: 4, ease: 'easeInOut' }}
+        />
+      </motion.div>
+    </motion.div>
+  )
+}
+
+export default function Hero() {
+  const { scrollY } = useScroll()
+  // 插画以约 0.6 倍速视差上移（相对正文）
+  const illoY = useTransform(scrollY, [0, 800], [0, -120])
+
+  return (
+    <section className="hero-glow relative flex min-h-[640px] items-center overflow-hidden md:min-h-[100dvh]">
+      <div className="mx-auto grid w-full max-w-marketing grid-cols-1 items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[55%_45%]">
+        {/* 左：文案 */}
+        <div>
           <motion.span
-            className="label-mono text-primary"
+            className="label-mono text-ink-500"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
           >
-            中央财经大学 · 综测填报助手
+            CUFE · 综合素质评价 · 填报辅助
           </motion.span>
 
-          <motion.h1
-            className="mt-5 text-[36px] font-black leading-[1.15] tracking-title text-ink-900 sm:text-display-xl"
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.08, ease: EASE }}
-          >
-            综测填报，
-            <br className="sm:hidden" />
-            像盖章一样简单。
-          </motion.h1>
+          <div className="mt-5">
+            <SplitLines />
+          </div>
 
           <motion.p
-            className="mx-auto mt-5 max-w-[36em] text-body-lg text-ink-500"
-            initial={{ opacity: 0, y: 20 }}
+            className="mt-6 max-w-[34em] text-body-lg text-ink-700"
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.2, ease: EASE }}
+            transition={{ duration: 0.5, delay: 0.5, ease: EASE }}
           >
-            把几十页学院细则变成一步步问答：你只回答「我做了什么」，
-            规则引擎自动算分、判级别、查互斥，最后导出一份逐项核对清单。
+            「大学印记 · 综测助手」把学院细则拆成一步步问答。你只回答“我做了什么”，
+            分数由规则引擎自动计算，最后一键生成可导出的填报清单。
           </motion.p>
 
           <motion.div
-            className="mt-9 flex flex-wrap items-center justify-center gap-3"
-            initial={{ opacity: 0, y: 20 }}
+            className="mt-8 flex flex-wrap items-center gap-4"
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.32, ease: EASE }}
+            transition={{ duration: 0.5, delay: 0.7, ease: EASE }}
           >
             <Link
               to="/wizard"
-              className="inline-flex items-center gap-2 rounded-[12px] bg-primary px-7 py-3.5 text-[16px] font-medium text-primary-foreground shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:bg-primary-deep hover:shadow-card-hover"
+              className="group inline-flex items-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-[16px] font-medium text-primary-foreground shadow-card transition-colors duration-200 hover:bg-primary-deep"
             >
               开始填报
-              <ArrowRight className="h-4.5 w-4.5" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <a
-              href="/#why"
-              className="rounded-[12px] border border-line bg-card px-7 py-3.5 text-[16px] font-medium text-ink-700 transition-colors hover:bg-paper-100"
+              href="/#colleges"
+              className="rounded-[10px] px-4 py-3 text-[15px] font-medium text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900"
             >
-              了解原理
+              看看支持哪些学院
             </a>
           </motion.div>
 
-          <motion.p
-            className="mt-6 text-caption text-ink-300"
+          <motion.ul
+            className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-caption text-ink-500"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.45 }}
+            transition={{ duration: 0.5, delay: 0.9 }}
           >
-            无需注册 · 数据只存在你的浏览器里 · 已支持 4 个学院
-          </motion.p>
+            <li className="flex items-center gap-1.5">
+              <UserX className="h-3.5 w-3.5 text-success" /> 无需注册
+            </li>
+            <li className="flex items-center gap-1.5">
+              <HardDrive className="h-3.5 w-3.5 text-success" /> 数据只在本地
+            </li>
+            <li className="flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5 text-success" /> 规则版本公开
+            </li>
+          </motion.ul>
         </div>
 
-        {/* 漂浮卡片 */}
-        {FLOAT_CARDS.map((c) => (
-          <motion.div
-            key={c.title}
-            className={`absolute flex-col gap-1 rounded-[14px] border border-line bg-card/90 px-4 py-3 shadow-card backdrop-blur-sm ${c.className}`}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: c.delay, ease: EASE }}
-          >
-            <span className={`flex items-center gap-2 text-[14px] font-bold ${c.seal ? 'font-serif text-seal' : 'text-ink-900'}`}>
-              <c.icon className={`h-4 w-4 ${c.seal ? 'text-seal' : 'text-primary'}`} />
-              {c.title}
-            </span>
-            <span className="text-[12px] text-ink-500">{c.sub}</span>
-          </motion.div>
-        ))}
+        {/* 右：插画 + 悬浮印章 */}
+        <motion.div
+          className="relative mx-auto w-full max-w-[560px] lg:max-w-none"
+          style={{ y: illoY }}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.4, ease: EASE }}
+        >
+          <img
+            src="/hero-illustration.svg"
+            alt="展开的问卷卷轴与七个模块标签"
+            className="w-full"
+          />
+          <FloatingStamp />
+        </motion.div>
       </div>
     </section>
   )
