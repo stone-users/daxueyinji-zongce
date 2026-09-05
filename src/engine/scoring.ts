@@ -162,6 +162,45 @@ export function scoreAnswer(q: Question, a: AnswerValue): { score: Score; note?:
       return { score: opt.score, note }
     }
     case 'count': {
+      // multi_count：一题多计数行，得分 = Σ counts[key] × unitScore（0 次的行不进说明文案）
+      if (q.counters?.length) {
+        const counts = a.counts ?? {}
+        const anyCount = q.counters.some((c) => (counts[c.key] ?? 0) > 0)
+        if (!a.participated && !anyCount) return { score: 0 }
+        let lo = 0
+        let hi = 0
+        let hasRange = false
+        const parts: string[] = []
+        for (const c of q.counters) {
+          const n = counts[c.key] ?? 0
+          if (n <= 0) continue
+          parts.push(`${c.label} ×${n}`)
+          if (Array.isArray(c.unitScore)) {
+            hasRange = true
+            lo += c.unitScore[0] * n
+            hi += c.unitScore[1] * n
+          } else {
+            lo += (c.unitScore ?? 0) * n
+            hi += (c.unitScore ?? 0) * n
+          }
+        }
+        let score: Score = hasRange ? [lo, hi] : lo
+        const mid = scoreMid(score)
+        if (q.cap != null && mid != null && mid > q.cap) {
+          if (Array.isArray(score)) {
+            const ratio = q.cap / mid
+            score = [Math.floor(score[0] * ratio * 100) / 100, q.cap]
+          } else score = q.cap
+          return { score, capped: true, capValue: q.cap, note: `本项加分上限 ${q.cap} 分，已按上限计入` }
+        }
+        const note = [
+          parts.length ? parts.join('、') : '',
+          hasRange ? `建议分 ${scoreMid(score)} 分，区间 ${lo}–${hi}，最终由评议小组在区间内定夺` : '',
+        ]
+          .filter(Boolean)
+          .join('；')
+        return { score, note: note || undefined }
+      }
       if (!a.participated || a.count <= 0) return { score: 0 }
       const unit = q.baseScore
       let score: Score
