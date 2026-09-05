@@ -98,6 +98,13 @@ export interface AnchorOption {
   desc?: string // 行为锚点描述
 }
 
+/** 多次数题的单个计数行（multi_count 编译结果）：如 校级及以上 每次 +5 */
+export interface CounterSpec {
+  key: string // 稳定键（取 label）
+  label: string
+  unitScore: Score // 每次分值
+}
+
 export interface Question {
   id: string // itemRef：模块/章节/条目 路径，全链路可追溯
   module: string
@@ -110,6 +117,7 @@ export interface Question {
   scoreText?: string // 控件区单位标注，如「每次 +1 分」
   // 分值参数
   baseScore?: Score
+  counters?: CounterSpec[] // multi_count：一题多计数行（kind='count'），得分 = Σ counts[key] × unitScore
   options?: AnchorOption[]
   unit?: string
   cap?: number
@@ -182,7 +190,7 @@ export interface CompEntry {
 export type AnswerValue =
   | { kind: 'confirm'; confirmed: boolean }
   | { kind: 'bool'; value: boolean }
-  | { kind: 'count'; participated: boolean; count: number }
+  | { kind: 'count'; participated: boolean; count: number; counts?: Record<string, number> } // counts 仅 multi_count 题使用；单次数题不变
   | { kind: 'choice'; label: string | null }
   | { kind: 'ext'; value: number | null }
   | { kind: 'volunteer'; hours: number; hoursOut: number; venue: '校内' | '院内' }
