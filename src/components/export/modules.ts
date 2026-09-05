@@ -17,22 +17,39 @@ export const MODULE_META: ModuleMeta[] = [
 
 const FALLBACK_COLOR = '#22303E'
 
+/** 旧版会话里模块字段存的是模块 id（deyu 等），展示层一律兜底映射为中文名 */
+export const MODULE_ID_NAME: Record<string, string> = {
+  deyu: '德育',
+  zhiyu: '智育',
+  tiyu: '体育',
+  xueshu: '学术科研',
+  zuzhi: '组织管理',
+  laodong: '劳动实践',
+  meiyu: '美育',
+}
+
+export function moduleDisplayName(name: string): string {
+  return MODULE_ID_NAME[name] ?? name
+}
+
 export function moduleColor(name: string): string {
-  const hit = MODULE_META.find((m) => name.includes(m.key) || m.key.includes(name))
+  const cn = moduleDisplayName(name)
+  const hit = MODULE_META.find((m) => cn.includes(m.key) || m.key.includes(cn))
   return hit ? hit.color : FALLBACK_COLOR
 }
 
 /** 按设计顺序排列会话中出现的模块，未知模块排末尾 */
 export function orderedModules(names: string[]): string[] {
+  const key = (n: string) => moduleDisplayName(n)
   const known = MODULE_META.map((m) => m.key).filter((k) =>
-    names.some((n) => n === k || n.includes(k)),
+    names.some((n) => key(n) === k || key(n).includes(k)),
   )
   const unknown = names.filter(
-    (n) => !known.some((k) => n === k || n.includes(k)),
+    (n) => !known.some((k) => key(n) === k || key(n).includes(k)),
   )
   // known 里实际匹配到的原始名
   const matched = known
-    .map((k) => names.find((n) => n === k || n.includes(k))!)
+    .map((k) => names.find((n) => key(n) === k || key(n).includes(k))!)
     .filter(Boolean)
   return [...matched, ...unknown]
 }
