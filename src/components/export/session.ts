@@ -30,6 +30,8 @@ export interface ZongceSession {
   moduleStatus: Record<string, ModuleStatus>
   items: SessionItem[]
   totals: { perModule: Record<string, number | string>; note: string }
+  /** 开发排查专用：规则包校对待确认事项（pending_review），不在任何界面展示 */
+  pack_pending_review?: string[]
 }
 
 /** 宽松校验 + 读取本地暂存 */
