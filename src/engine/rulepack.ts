@@ -345,6 +345,24 @@ function itemToQuestion(ctx: Ctx, mod: PackModule, sec: PackSection, item: PackI
     return q
   }
 
+  // 多次数型加分（multi_count：同一荣誉分级别且可多次，如通报表扬 校级/院级 各记次数）
+  const mc = item.multi_count as Array<Record<string, unknown>> | undefined
+  if (Array.isArray(mc) && mc.length > 0) {
+    const counters = mc.map((c, i) => {
+      const label = str(c.label) ?? `第${i + 1}类`
+      return { key: label, label, unitScore: toScore(c.score) }
+    })
+    const q = baseQ(ctx, mod, sec, 'count', hint ?? `本学年你是否「${name}」？各级别分别有几次？`, name)
+    Object.assign(q, common, {
+      counters,
+      cap: typeof item.cap === 'number' ? item.cap : undefined,
+      scoreText: counters
+        .map((c) => `${c.label} 每次 ${Array.isArray(c.unitScore) ? `+${c.unitScore[0]}–${c.unitScore[1]}` : `+${c.unitScore ?? 0}`} 分`)
+        .join('；'),
+    })
+    return q
+  }
+
   // 次数型加分
   const unit = str(item.unit)
   const score = toScore(item.score)
