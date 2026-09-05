@@ -1,6 +1,6 @@
 import type { ZongceSession } from './session'
 import { formatScore, moduleSubtotal } from './session'
-import { orderedModules } from './modules'
+import { orderedModules, moduleDisplayName } from './modules'
 
 /** 导出 JSON 文件名：综测填报清单-〈学院〉-〈学年〉.json */
 export function exportFilename(session: ZongceSession): string {
@@ -41,7 +41,7 @@ export function buildPlainText(session: ZongceSession): string {
   modules.forEach((m, idx) => {
     const items = session.items.filter((i) => i.module === m)
     const sub = moduleSubtotal(session, m)
-    lines.push(`■ ${String(idx + 1).padStart(2, '0')} ${m}（小计 ${sub}）`)
+    lines.push(`■ ${String(idx + 1).padStart(2, '0')} ${moduleDisplayName(m)}（小计 ${sub}）`)
     for (const it of items) {
       const { main, isRange } = formatScore(it.score)
       const node = it.routeTo ? `系统其他项（${it.routeTo}栏）` : it.systemNode ?? '系统栏位待开放'
