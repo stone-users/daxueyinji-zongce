@@ -3,7 +3,7 @@ import { Copy, Download, Printer, Trash2 } from 'lucide-react'
 import DigitRoll from './DigitRoll'
 import type { ZongceSession } from './session'
 import { formatNumber, moduleSubtotal } from './session'
-import { MODULE_META, moduleColor } from './modules'
+import { moduleColor, moduleDisplayName } from './modules'
 import { cn } from '@/lib/utils'
 
 interface HeaderSectionProps {
@@ -103,29 +103,21 @@ export default function HeaderSection({
         </StatCell>
       </div>
 
-      {/* 七模块分值概览 */}
+      {/* 七模块分值概览（一律显示规则包中文模块名） */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[12px] border border-line bg-paper-100 px-4 py-3">
         <span className="label-mono text-ink-500">模块分值概览</span>
-        {MODULE_META.filter((m) => modules.some((n) => n === m.key || n.includes(m.key))).map((m) => {
-          const v = moduleSubtotal(session, m.key)
+        {modules.map((m) => {
+          const v = moduleSubtotal(session, m)
           return (
-            <span key={m.key} className="flex items-center gap-1.5 text-caption text-ink-700">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color }} />
-              {m.key}
+            <span key={m} className="flex items-center gap-1.5 text-caption text-ink-700">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: moduleColor(m) }} />
+              {moduleDisplayName(m)}
               <span className="font-mono font-semibold text-ink-900">
                 {typeof v === 'number' ? formatNumber(v) : v}
               </span>
             </span>
           )
         })}
-        {modules
-          .filter((n) => !MODULE_META.some((m) => n === m.key || n.includes(m.key)))
-          .map((n) => (
-            <span key={n} className="flex items-center gap-1.5 text-caption text-ink-700">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: moduleColor(n) }} />
-              {n}
-            </span>
-          ))}
       </div>
 
       {/* 操作按钮组 */}
