@@ -163,15 +163,59 @@ export function YesNoCount({
   q,
   participated,
   count,
+  counts,
   onChange,
   capReached,
 }: {
   q: Question
   participated: boolean | null
   count: number
-  onChange: (v: { participated: boolean; count: number }) => void
+  counts?: Record<string, number>
+  onChange: (v: { participated: boolean; count: number; counts?: Record<string, number> }) => void
   capReached: boolean
 }) {
+  // multi_count：一题多计数行（如通报表扬 校级/院级），各级别独立记次数
+  if (q.counters?.length) {
+    const cur = counts ?? {}
+    const setCount = (key: string, n: number) => {
+      const next = { ...cur, [key]: n }
+      onChange({ participated: Object.values(next).some((v) => v > 0), count: 0, counts: next })
+    }
+    let total = 0
+    let hasRange = false
+    for (const c of q.counters) {
+      const n = cur[c.key] ?? 0
+      if (Array.isArray(c.unitScore)) hasRange = true
+      else total += (c.unitScore ?? 0) * n
+    }
+    return (
+      <div className="space-y-3">
+        {q.counters.map((c) => {
+          const n = cur[c.key] ?? 0
+          const per = Array.isArray(c.unitScore) ? `${c.unitScore[0]}–${c.unitScore[1]}` : String(c.unitScore ?? 0)
+          const sub = n > 0 && !Array.isArray(c.unitScore) ? String((c.unitScore ?? 0) * n) : null
+          return (
+            <div key={c.key} className="flex flex-wrap items-center gap-4 rounded-[12px] bg-paper-100 px-4 py-4">
+              <span className="text-body text-ink-700">{c.label}</span>
+              <Stepper value={n} max={99} onChange={(v) => setCount(c.key, v)} />
+              <span className="text-caption text-ink-500">每次 +{per} 分</span>
+              {sub && (
+                <span className="ml-auto font-mono text-[15px] font-semibold tabular-nums text-ink-900">
+                  {per} × {n} 次 = +{sub}
+                </span>
+              )}
+            </div>
+          )
+        })}
+        {!hasRange && total > 0 && (
+          <p className={cn('font-mono text-[15px] font-semibold tabular-nums', capReached ? 'text-danger' : 'text-ink-900')}>
+            合计 +{total}
+            {q.cap != null && <span className="ml-2 font-sans text-caption font-normal text-ink-500">上限 {q.cap} 分</span>}
+          </p>
+        )}
+      </div>
+    )
+  }
   const unit = q.baseScore
   const per = Array.isArray(unit) ? `${unit[0]}–${unit[1]}` : unit ?? 0
   const subtotal =
