@@ -73,7 +73,7 @@ function positiveAnswer(_q: Question, a: AnswerMap[string]): boolean {
     case 'bool':
       return a.value
     case 'count':
-      return a.participated && a.count > 0
+      return a.participated && (a.count > 0 || Object.values(a.counts ?? {}).some((n) => n > 0))
     case 'choice':
       return a.label != null
     case 'ext':
