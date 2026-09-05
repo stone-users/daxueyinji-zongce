@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, CornerDownRight, FileText, Image, PencilLine
 import StampBadge from './StampBadge'
 import type { SessionItem, ZongceSession } from './session'
 import { formatNumber, formatScore, moduleSubtotal } from './session'
-import { moduleColor } from './modules'
+import { moduleColor, moduleDisplayName } from './modules'
 import { cn } from '@/lib/utils'
 
 interface ModuleGroupProps {
@@ -29,7 +29,7 @@ function ItemCell({ item }: { item: SessionItem }) {
         className="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] text-ink-500 transition-colors hover:text-primary"
       >
         <FileText className="h-3 w-3" />
-        {item.module} · {item.itemRef}
+        {moduleDisplayName(item.module)} · 条目依据
         <ChevronRight className={cn('h-3 w-3 transition-transform', open && 'rotate-90')} />
         细则原文
       </button>
@@ -62,7 +62,8 @@ function ScoreCell({ item }: { item: SessionItem }) {
         {isRange && <sup className="ml-0.5 text-[11px] text-warning">†</sup>}
       </span>
       {isRange && <p className="mt-1 text-[11px] text-ink-500">区间分，评议小组定夺</p>}
-      {item.note && item.status !== 'ok' && !item.routeTo && (
+      {/* 计分明细（如 校级及以上 ×2、院级 ×1 / 志愿时长折算），routeTo 项的说明在系统节点列展示 */}
+      {item.note && !item.routeTo && (
         <p className="mt-1 max-w-[220px] text-[11px] leading-snug text-ink-500">{item.note}</p>
       )}
     </div>
@@ -146,7 +147,7 @@ export default function ModuleGroup({
         <span className="label-mono" style={{ color }}>
           MODULE {String(moduleIndex + 1).padStart(2, '0')}
         </span>
-        <h2 className="text-title-sm text-ink-900">{moduleName}</h2>
+        <h2 className="text-title-sm text-ink-900">{moduleDisplayName(moduleName)}</h2>
         <span className="ml-auto font-mono text-[15px] font-semibold text-ink-700">
           小计 {typeof subtotal === 'number' ? formatNumber(subtotal) : subtotal}
         </span>
@@ -269,7 +270,7 @@ function MobileItemCard({ item, uploaded }: { item: SessionItem; uploaded: boole
         <div className="min-w-0">
           <p className="text-body font-medium text-ink-900">{item.name}</p>
           <p className="mt-0.5 font-mono text-[11px] text-ink-500">
-            {item.module} · {item.itemRef}
+            {moduleDisplayName(item.module)}
           </p>
         </div>
         <ScoreCell item={item} />
