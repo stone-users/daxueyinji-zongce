@@ -73,8 +73,14 @@ modules:
         name: 德育奖励分
         cap: 30
         items:
-          - {name: 获通报表扬（校级）, score: 5, evidence: [校级媒体/宣传部门新闻稿或公开发文], rule: 同类事件取高不累加, source_quote: "获通报表扬：校级+5分，院级+3分"}
-          - {name: 获通报表扬（院级）, score: 3, evidence: [院级媒体/宣传部门新闻稿或公开发文]}
+          - name: 获通报表扬
+            type: bonus
+            multi_count:
+              - {label: 校级, score: 5}
+              - {label: 院级, score: 3}
+            evidence: [校级媒体/宣传部门新闻稿或公开发文, 院级媒体/宣传部门新闻稿或公开发文]
+            rule: 同类事件取高不累加
+            source_quote: "获通报表扬：校级+5分，院级+3分"
           - name: 卫生优秀宿舍
             type: derived                        # [扩展E] 折算复杂，引擎只做计算器
             formula_note: >
