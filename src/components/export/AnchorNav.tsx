@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { moduleColor } from './modules'
+import { moduleColor, moduleDisplayName } from './modules'
 import { cn } from '@/lib/utils'
 
 interface AnchorNavProps {
@@ -53,7 +53,7 @@ export default function AnchorNav({ modules, pendingReview, needsEvidence }: Anc
               )}
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: moduleColor(m) }} />
-              {m}
+              {moduleDisplayName(m)}
               <span
                 className={cn(
                   'absolute inset-x-3 bottom-0 h-[2px] rounded-full transition-all duration-200',
