@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { buildPlan, loadPack } from '@/engine/rulepack'
+import { isAnswered, loadProgress } from '@/engine/session'
 import HeaderSection from '@/components/export/HeaderSection'
 import AnchorNav from '@/components/export/AnchorNav'
 import ModuleGroup from '@/components/export/ModuleGroup'
 import PendingSummary from '@/components/export/PendingSummary'
+import UnansweredSummary, { type UnansweredItem } from '@/components/export/UnansweredSummary'
 import Disclaimer from '@/components/export/Disclaimer'
 import EmptyState from '@/components/export/EmptyState'
 import ConfirmModal from '@/components/export/ConfirmModal'
@@ -82,6 +85,52 @@ export default function Export() {
 
   const totalScore = useMemo(() => (session ? totalReferenceScore(session) : 0), [session])
 
+  // 未填项总览：重载规则包比对题目集；有向导暂存时按作答判定（选"否"也算已答），否则按清单条目兜底
+  // 注意：题目 id 尾部 #n 是引擎全局序号，跨页面上下文会漂移，匹配一律用稳定段（模块/章节/条目名）
+  const [unanswered, setUnanswered] = useState<UnansweredItem[]>([])
+  useEffect(() => {
+    if (!session) {
+      setUnanswered([])
+      return
+    }
+    const stripSeq = (id: string) => id.replace(/#\d+$/, '')
+    let alive = true
+    ;(async () => {
+      try {
+        const pack = await loadPack(session.college)
+        const plans = buildPlan(pack, session.grade, true)
+        const progress = loadProgress()
+        const useAnswers = progress?.college === session.college
+        // 稳定段 → 题目 映射，用真实 q 判定 isAnswered（ext 题依赖 q.extReadonly）
+        const qByBase = new Map(plans.flatMap((p) => p.questions.map((q) => [stripSeq(q.id), q] as const)))
+        const answeredByProgress = new Set(
+          Object.entries(progress?.answers ?? {})
+            .filter(([k, a]) => {
+              const q = qByBase.get(stripSeq(k))
+              return q ? isAnswered(q, a) : false
+            })
+            .map(([k]) => stripSeq(k)),
+        )
+        const answeredRefs = new Set(session.items.map((i) => stripSeq(i.itemRef.replace(/\[\d+\]$/, ''))))
+        const list: UnansweredItem[] = []
+        for (const p of plans) {
+          for (const q of p.questions) {
+            const answered = useAnswers ? answeredByProgress.has(stripSeq(q.id)) : answeredRefs.has(stripSeq(q.id))
+            if (!answered) {
+              list.push({ itemRef: stripSeq(q.id), title: q.shortName || q.title, moduleName: q.moduleName || p.name })
+            }
+          }
+        }
+        if (alive) setUnanswered(list)
+      } catch {
+        if (alive) setUnanswered([])
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [session])
+
   const handleExportJson = useCallback(() => {
     if (!session) return
     downloadSessionJson(session)
@@ -158,6 +207,8 @@ export default function Export() {
             onCopy={handleCopy}
             onClear={() => setConfirmClear(true)}
           />
+
+          <UnansweredSummary items={unanswered} />
 
           <AnchorNav
             modules={modules}
