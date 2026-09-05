@@ -88,8 +88,13 @@ modules:
         name: 德育奖励分
         system_node: 德育加分
         items:
-          - {name: 获通报表扬（校级）, score: 5, evidence: [盖章或官方报道证明], rule: 同一事件取高不累加}
-          - {name: 获通报表扬（院级）, score: 3}
+          - name: 获通报表扬
+            type: bonus
+            multi_count:
+              - {label: 校级, score: 5}
+              - {label: 院级, score: 3}
+            evidence: [盖章或官方报道证明]
+            rule: 同一事件取高不累加
           - {name: 校级优秀宿舍（宿舍长）, score: 5, role: 宿舍长}
           - {name: 校级优秀宿舍（成员）, score: 4, role: 宿舍成员}
           - {name: 校级特色示范宿舍（宿舍长）, score: 3, role: 宿舍长}
