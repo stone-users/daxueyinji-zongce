@@ -73,6 +73,7 @@ export default function QuestionCard({
             q={q}
             participated={answer?.kind === 'count' ? answer.participated : null}
             count={answer?.kind === 'count' ? answer.count : 0}
+            counts={answer?.kind === 'count' ? answer.counts : undefined}
             capReached={result.capped === true}
             onChange={(v) => onAnswer({ kind: 'count', ...v })}
           />
