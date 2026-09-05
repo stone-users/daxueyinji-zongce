@@ -56,8 +56,12 @@ modules:
         name: 德育奖励分
         system_node: 德育加分
         items:
-          - {name: 获通报表扬（校级）, score: 5, rule: 同一事件取高不累加}
-          - {name: 获通报表扬（院级）, score: 3}
+          - name: 获通报表扬
+            type: bonus
+            multi_count:
+              - {label: 校级, score: 5}
+              - {label: 院级, score: 3}
+            rule: 同一事件取高不累加
           - name: 宿舍获奖/卫生优秀宿舍
             type: tiered
             tiers:
