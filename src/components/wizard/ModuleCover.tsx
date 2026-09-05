@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 
 const MODULE_COLORS: Record<string, string> = {
@@ -15,65 +14,51 @@ export function moduleColor(id: string): string {
   return MODULE_COLORS[id] ?? '#22303E'
 }
 
-/** 模块封面：序号 + 模块名（blur→清晰）+ 预告；1.2s 无操作自动进入 */
-export default function ModuleCover({
+/** 模块长页顶部模块头：序号 + 中文模块名 + 分值/题量概览 + 说明（不再是单独一步） */
+export default function ModuleHeader({
   moduleId,
   name,
   index,
   total,
   questionCount,
+  answeredCount,
+  maxScore,
   note,
-  onEnter,
 }: {
   moduleId: string
   name: string
   index: number
   total: number
   questionCount: number
+  answeredCount: number
+  maxScore?: number
   note?: string
-  onEnter: () => void
 }) {
   const color = moduleColor(moduleId)
-  useEffect(() => {
-    const t = setTimeout(onEnter, 1200)
-    return () => clearTimeout(t)
-  }, [onEnter])
 
   return (
-    <button
-      type="button"
-      onClick={onEnter}
-      className="flex min-h-[50dvh] w-full flex-col items-center justify-center rounded-[16px] px-6 text-center"
+    <motion.header
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-[16px] px-6 py-8 sm:px-8"
       style={{ background: `linear-gradient(160deg, ${color}14 0%, transparent 60%)` }}
     >
-      <motion.span
-        className="label-mono text-ink-500"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
+      <span className="label-mono text-ink-500">
         MODULE {String(index + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-      </motion.span>
-      <motion.h1
-        className="mt-4 text-display-lg tracking-title-lg"
-        style={{ color }}
-        initial={{ opacity: 0, filter: 'blur(8px)' }}
-        animate={{ opacity: 1, filter: 'blur(0px)' }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {name}
-      </motion.h1>
-      <motion.p
-        className="mt-4 max-w-md text-body-lg text-ink-500"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25, duration: 0.4 }}
-      >
-        本模块大约 {questionCount} 道题{note ? `。${note}` : '。'}
-      </motion.p>
-      <motion.span className="mt-8 text-caption text-ink-300" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-        点击任意处继续
-      </motion.span>
-    </button>
+      </span>
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+        <h1 className="text-display-lg tracking-title-lg" style={{ color }}>
+          {name}
+        </h1>
+        <span className="font-mono text-caption tabular-nums text-ink-500">
+          已答 {answeredCount}/{questionCount}
+          {typeof maxScore === 'number' ? ` · 模块满分 ${maxScore} 分` : ''}
+        </span>
+      </div>
+      <p className="mt-3 max-w-md text-body text-ink-500">
+        本模块共 {questionCount} 道题，向下滚动连续作答，没填的可以随时回来补{note ? `。${note}` : '。'}
+      </p>
+    </motion.header>
   )
 }
