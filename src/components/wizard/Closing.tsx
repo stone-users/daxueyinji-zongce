@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { TriangleAlert, CircleAlert, ArrowRight } from 'lucide-react'
+import { TriangleAlert, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router'
 import type { PackItem, SessionItem } from '@/engine/types'
 import { toScore } from '@/engine/rulepack'
@@ -79,15 +79,13 @@ export function ClosingPenalty({
   )
 }
 
-/** 收尾页二：待确认项（规则包 pending_review + 作答中产生的待确认集合） */
+/** 收尾页二：待确认项（仅用户作答中产生的待确认集合；规则包校对 pending 属开发信息，不在此展示） */
 export function ClosingPending({
-  reviewNotes,
   items,
   onJump,
   onPrev,
   onFinish,
 }: {
-  reviewNotes: string[]
   items: SessionItem[]
   onJump: (itemRef: string) => void
   onPrev: () => void
@@ -95,7 +93,7 @@ export function ClosingPending({
 }) {
   const pendingItems = items.filter((i) => i.status === 'pending_review')
   const needEvidence = items.filter((i) => i.status === 'needs_evidence')
-  const empty = reviewNotes.length === 0 && pendingItems.length === 0 && needEvidence.length === 0
+  const empty = pendingItems.length === 0 && needEvidence.length === 0
 
   return (
     <div className="mx-auto max-w-wizard px-4 py-10 sm:px-6">
@@ -121,16 +119,6 @@ export function ClosingPending({
             <Section title="建议补佐证的加分项">
               {needEvidence.map((it) => (
                 <PendingRow key={it.itemRef} item={it} stamp="material" onJump={onJump} />
-              ))}
-            </Section>
-          )}
-          {reviewNotes.length > 0 && (
-            <Section title="规则包待确认事项（来自学院细则校对）">
-              {reviewNotes.map((n, i) => (
-                <li key={i} className="flex items-start gap-3 rounded-[12px] border border-line bg-card px-4 py-3.5">
-                  <CircleAlert className="mt-1 h-4 w-4 shrink-0 text-warning" />
-                  <p className="text-body text-ink-700">{n}</p>
-                </li>
               ))}
             </Section>
           )}
