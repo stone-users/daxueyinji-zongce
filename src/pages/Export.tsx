@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPlan, loadPack } from '@/engine/rulepack'
-import { isAnswered, loadProgress } from '@/engine/session'
+import { isAnswered, isQuestionVisible, loadProgress } from '@/engine/session'
+import type { AnswerMap } from '@/engine/types'
 import HeaderSection from '@/components/export/HeaderSection'
 import AnchorNav from '@/components/export/AnchorNav'
 import ModuleGroup from '@/components/export/ModuleGroup'
 import PendingSummary from '@/components/export/PendingSummary'
 import UnansweredSummary, { type UnansweredItem } from '@/components/export/UnansweredSummary'
+import EvidenceList, { type QuestionMeta } from '@/components/export/EvidenceList'
 import Disclaimer from '@/components/export/Disclaimer'
 import EmptyState from '@/components/export/EmptyState'
 import ConfirmModal from '@/components/export/ConfirmModal'
 import ToastStack, { type ToastData } from '@/components/export/Toast'
 import { buildDemoSession } from '@/components/export/demoSession'
-import { loadEvidenceKeys } from '@/components/export/evidence'
+import { loadEvidenceFiles, loadEvidenceKeys, type EvidenceFile } from '@/components/export/evidence'
 import { buildPlainText, downloadSessionJson } from '@/components/export/exporters'
 import { orderedModules } from '@/components/export/modules'
 import {
@@ -45,6 +47,8 @@ const PRINT_CSS = `
 export default function Export() {
   const [session, setSession] = useState<ZongceSession | null>(() => loadSession())
   const [evidenceKeys, setEvidenceKeys] = useState<Set<string>>(new Set())
+  const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([])
+  const [qMeta, setQMeta] = useState<Map<string, QuestionMeta>>(new Map())
   const [toasts, setToasts] = useState<ToastData[]>([])
   const [exported, setExported] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -54,6 +58,9 @@ export default function Export() {
     let alive = true
     loadEvidenceKeys().then((keys) => {
       if (alive) setEvidenceKeys(keys)
+    })
+    loadEvidenceFiles().then((files) => {
+      if (alive) setEvidenceFiles(files)
     })
     return () => {
       alive = false
@@ -103,6 +110,10 @@ export default function Export() {
         const useAnswers = progress?.college === session.college
         // 稳定段 → 题目 映射，用真实 q 判定 isAnswered（ext 题依赖 q.extReadonly）
         const qByBase = new Map(plans.flatMap((p) => p.questions.map((q) => [stripSeq(q.id), q] as const)))
+        // 佐证清单分组元信息：稳定段 itemRef → 模块中文名 + 题目名
+        if (alive) {
+          setQMeta(new Map(plans.flatMap((p) => p.questions.map((q) => [stripSeq(q.id), { moduleName: q.moduleName || p.name, title: q.shortName || q.title }] as const))))
+        }
         const answeredByProgress = new Set(
           Object.entries(progress?.answers ?? {})
             .filter(([k, a]) => {
@@ -111,10 +122,18 @@ export default function Export() {
             })
             .map(([k]) => stripSeq(k)),
         )
+        // 把暂存答案重映射到本次题目 id（序号可能漂移），用于 depends_on 条件显隐判定
+        const remapped: AnswerMap = {}
+        for (const [k, v] of Object.entries(progress?.answers ?? {})) {
+          const q = qByBase.get(stripSeq(k))
+          if (q) remapped[q.id] = v
+        }
         const answeredRefs = new Set(session.items.map((i) => stripSeq(i.itemRef.replace(/\[\d+\]$/, ''))))
         const list: UnansweredItem[] = []
         for (const p of plans) {
           for (const q of p.questions) {
+            // 条件隐藏题不计入未填总览（有暂存时按真实答案判定；无暂存无法判定，保守保留）
+            if (useAnswers && q.dependsOn && !isQuestionVisible(q, p, remapped)) continue
             const answered = useAnswers ? answeredByProgress.has(stripSeq(q.id)) : answeredRefs.has(stripSeq(q.id))
             if (!answered) {
               list.push({ itemRef: stripSeq(q.id), title: q.shortName || q.title, moduleName: q.moduleName || p.name })
@@ -228,6 +247,8 @@ export default function Export() {
               />
             ))}
           </div>
+
+          <EvidenceList files={evidenceFiles} qMeta={qMeta} college={session.college} />
 
           <div className="mt-10 space-y-6">
             <PendingSummary
