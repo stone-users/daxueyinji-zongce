@@ -91,6 +91,25 @@ export type QuestionKind =
   | 'pub' // 发表文章/作品：刊物类别 × 作者位次 matrix
   | 'ext' // ext-port：外部成绩输入
   | 'volunteer' // 志愿时长：小时数 + 校内/院内折算
+  | 'award' // award-list：获奖记录卡，逐条添加（可带身份维度），sum/max 聚合
+
+/** award 题的结构化分值表（编译产物，控件直接渲染用） */
+export interface AwardSpec {
+  /** 身份维度（matrix/score_range_by_level 顶层键为身份时出现），如 ['负责人','成员'] */
+  roles?: string[]
+  /** 级别选项，如 ['国家级','省部级','校级','院级'] */
+  levels: string[]
+  /** 分值表：无身份 → {级别: Score}；有身份 → {身份: {级别: Score}} */
+  scoreOf: Record<string, Score> | Record<string, Record<string, Score>>
+  /** 多条记录聚合方式：sum 累加 / max 取高不累加 */
+  aggregate: 'sum' | 'max'
+}
+
+/** 条件显隐：depends_on 编译产物（ref 为同模块前置题的 question id） */
+export interface DependsOn {
+  ref: string
+  when: 'yes' | 'no'
+}
 
 export interface AnchorOption {
   label: string
@@ -126,6 +145,8 @@ export interface Question {
   // matrix 参数
   matrix?: Record<string, unknown>
   matrixLevels?: string[]
+  award?: AwardSpec // award_list 编译产物
+  dependsOn?: DependsOn // 条件显隐：前置题答案不满足时本题隐藏且不计分
   phaseNames?: string[] // project：参加/立项/结项
   pubRows?: string[] // pub：刊物类别
   roleMultiplier?: Record<string, number>
@@ -195,6 +216,15 @@ export type AnswerValue =
   | { kind: 'ext'; value: number | null }
   | { kind: 'volunteer'; hours: number; hoursOut: number; venue: '校内' | '院内' }
   | { kind: 'comp'; entries: CompEntry[] }
+  | { kind: 'award'; none: boolean; entries: AwardEntry[] }
+
+/** award 题的一条获奖记录：score 为用户确认/自填的分值；custom=true 表示改过标准分（待评议确认） */
+export interface AwardEntry {
+  role?: string // 身份（有身份维度时必填）
+  level: string
+  score: number
+  custom?: boolean
+}
 
 export type AnswerMap = Record<string, AnswerValue>
 
