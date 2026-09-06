@@ -5,6 +5,7 @@
 import { load as loadYaml } from 'js-yaml'
 import type {
   AnchorOption,
+  AwardSpec,
   Catalog,
   CatalogEntry,
   ModulePlan,
@@ -136,6 +137,35 @@ interface Ctx {
   pack: RulePack
   grade: string
   catalogAvailable: boolean
+  /** depends_on 待解析队列（编译完成后按模块把条目 name 解析成 question id） */
+  pendingDepends: Array<{ q: Question; name: string; when: 'yes' | 'no' }>
+  /** 已挂依赖的题（item 级优先于 section 级传染） */
+  hasDepends: Set<string>
+}
+
+interface RawDepends {
+  name: string
+  when: 'yes' | 'no'
+}
+
+/** 解析 depends_on: {item: 前置条目name, when: yes|no}；缺 item 视为无效 */
+function parseDepends(v: unknown): RawDepends | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null
+  const o = v as Record<string, unknown>
+  const name = str(o.item)
+  if (!name) return null
+  return { name, when: str(o.when) === 'no' ? 'no' : 'yes' }
+}
+
+/** award 题某条记录（身份/级别）对应的标准分值（固定分或区间），用于参考分展示与导出说明 */
+export function awardRefScore(q: Question, e: { role?: string; level: string }): Score {
+  const spec = q.award
+  if (!spec) return null
+  if (spec.roles) {
+    const table = spec.scoreOf as Record<string, Record<string, Score>>
+    return table[e.role ?? '']?.[e.level] ?? null
+  }
+  return (spec.scoreOf as Record<string, Score>)[e.level] ?? null
 }
 
 let qSeq = 0
@@ -206,8 +236,20 @@ function countTierOptions(entry: Record<string, unknown>): AnchorOption[] | null
   return opts
 }
 
-/** item → 单个题目（返回 null 表示不生成题目：penalty / derived / 年级不适用） */
+/** item → 单个题目（返回 null 表示不生成题目：penalty / derived / 年级不适用）；附带解析 item 级 depends_on */
 function itemToQuestion(ctx: Ctx, mod: PackModule, sec: PackSection, item: PackItem): Question | null {
+  const q = itemToQuestionRaw(ctx, mod, sec, item)
+  if (q) {
+    const dep = parseDepends(item.depends_on)
+    if (dep && !ctx.hasDepends.has(q.id)) {
+      ctx.pendingDepends.push({ q, name: dep.name, when: dep.when })
+      ctx.hasDepends.add(q.id)
+    }
+  }
+  return q
+}
+
+function itemToQuestionRaw(ctx: Ctx, mod: PackModule, sec: PackSection, item: PackItem): Question | null {
   const type = str(item.type) ?? 'bonus'
   if (type === 'penalty' || type === 'derived') return null
 
@@ -325,6 +367,40 @@ function itemToQuestion(ctx: Ctx, mod: PackModule, sec: PackSection, item: PackI
       hourConversion: (item.hour_conversion as Record<string, number>) ?? undefined,
     })
     return q
+  }
+
+  // 获奖记录卡（widget: award_list）：多条添加、级联选择身份/级别、区间自填、sum/max 聚合
+  if (str(item.widget) === 'award_list') {
+    const src = (item.score_by_level ?? item.score_range_by_level ?? item.matrix) as Record<string, unknown> | undefined
+    if (src && Object.keys(src).length > 0) {
+      const keys = Object.keys(src)
+      // 顶层值全部为对象 → 顶层键是身份维度（负责人/成员）
+      const roleKeys = keys.filter((k) => typeof src[k] === 'object' && src[k] !== null && !Array.isArray(src[k]))
+      const hasRoles = roleKeys.length > 0 && roleKeys.length === keys.length
+      const aggregate: AwardSpec['aggregate'] = str(item.aggregate) === 'sum' ? 'sum' : 'max'
+      let award: AwardSpec
+      if (hasRoles) {
+        const levels = Object.keys(src[roleKeys[0]] as Record<string, unknown>)
+        const scoreOf: Record<string, Record<string, Score>> = {}
+        for (const r of roleKeys) {
+          scoreOf[r] = {}
+          for (const [lv, v] of Object.entries(src[r] as Record<string, unknown>)) scoreOf[r][lv] = toScore(v)
+        }
+        award = { roles: roleKeys, levels, scoreOf, aggregate }
+      } else {
+        const scoreOf: Record<string, Score> = {}
+        for (const [k, v] of Object.entries(src)) scoreOf[k] = toScore(v)
+        award = { levels: keys, scoreOf, aggregate }
+      }
+      const q = baseQ(ctx, mod, sec, 'award', hint ?? `本学年你获得过「${name}」吗？有的话逐条添加`, name)
+      Object.assign(q, common, {
+        award,
+        cap: typeof item.cap === 'number' ? item.cap : undefined,
+        desc: [desc, str(item.rule) ? `口径：${str(item.rule)}` : null].filter(Boolean).join('；') || undefined,
+      })
+      return q
+    }
+    console.warn(`[rulepack] award_list 缺少分值结构（score_by_level / score_range_by_level / matrix）：${name}，已按普通加分题处理`)
   }
 
   // 级别分（score_by_level / score_range_by_level / item 内 matrix）
@@ -459,9 +535,27 @@ function isPenaltySection(sec: PackSection): boolean {
   return items.length > 0 && items.every(isPenaltyItem)
 }
 
-function walkSection(ctx: Ctx, mod: PackModule, sec: PackSection, plan: ModulePlan): void {
+/** 递归展开章节生成题目；外层包装负责 section 级 depends_on 传染 */
+function walkSection(ctx: Ctx, mod: PackModule, sec: PackSection, plan: ModulePlan, inheritedDepends: RawDepends[] = []): void {
+  const secDep = parseDepends(sec.depends_on)
+  const chain = secDep ? [...inheritedDepends, secDep] : inheritedDepends
+  const qStart = plan.questions.length
+  walkSectionInner(ctx, mod, sec, plan, chain)
+  if (chain.length) {
+    const innermost = chain[chain.length - 1]
+    for (let i = qStart; i < plan.questions.length; i++) {
+      const q = plan.questions[i]
+      if (!ctx.hasDepends.has(q.id)) {
+        ctx.pendingDepends.push({ q, name: innermost.name, when: innermost.when })
+        ctx.hasDepends.add(q.id)
+      }
+    }
+  }
+}
+
+function walkSectionInner(ctx: Ctx, mod: PackModule, sec: PackSection, plan: ModulePlan, chain: RawDepends[]): void {
   // 嵌套 sections 先展开（如智育人文素质 → 通识/读书）
-  if (sec.sections) for (const sub of sec.sections) walkSection(ctx, mod, sub, plan)
+  if (sec.sections) for (const sub of sec.sections) walkSection(ctx, mod, sub, plan, chain)
 
   // 减分章节 → 收尾自查
   if (isPenaltySection(sec)) {
@@ -545,7 +639,7 @@ function walkSection(ctx: Ctx, mod: PackModule, sec: PackSection, plan: ModulePl
 
 /** 规则包 + 年级 → 七模块作答计划 */
 export function buildPlan(pack: RulePack, grade: string, catalogAvailable: boolean): ModulePlan[] {
-  const ctx: Ctx = { pack, grade, catalogAvailable }
+  const ctx: Ctx = { pack, grade, catalogAvailable, pendingDepends: [], hasDepends: new Set() }
   const plans: ModulePlan[] = []
   for (const mod of pack.modules ?? []) {
     const plan: ModulePlan = {
@@ -559,6 +653,14 @@ export function buildPlan(pack: RulePack, grade: string, catalogAvailable: boole
     }
     for (const sec of mod.sections ?? []) walkSection(ctx, mod, sec, plan)
     plans.push(plan)
+  }
+  // 解析 depends_on 条目 name → 同模块前置题 id（解析不到仅告警，不阻断编译）
+  for (const plan of plans) {
+    for (const pd of ctx.pendingDepends.filter((x) => x.q.module === plan.id)) {
+      const ref = plan.questions.find((o) => o.id !== pd.q.id && (o.id.includes(`/${pd.name}#`) || o.title.includes(pd.name)))
+      if (ref) pd.q.dependsOn = { ref: ref.id, when: pd.when }
+      else console.warn(`[rulepack] depends_on 未解析：「${pd.q.shortName}」依赖的「${pd.name}」在模块 ${plan.id} 内未找到，已忽略该条件`)
+    }
   }
   // 解析 mutex_with 名称 → 题目 id（模块内匹配）
   for (const plan of plans) {
