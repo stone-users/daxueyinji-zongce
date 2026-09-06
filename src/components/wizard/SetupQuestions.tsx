@@ -56,8 +56,8 @@ export default function SetupQuestions({
                 college === c.name ? 'border-[1.5px] border-primary bg-primary/5' : 'border-line hover:-translate-y-0.5 hover:shadow-card-hover',
               )}
             >
-              <span className="font-serif text-[20px] font-bold text-ink-900">{c.name}</span>
-              <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">已支持</span>
+              <span className="min-w-0 whitespace-nowrap font-serif text-sm font-bold text-ink-900">{c.name}</span>
+              <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">已支持</span>
             </button>
           ))}
         </div>
