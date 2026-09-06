@@ -17,7 +17,7 @@ function Logo() {
       <span className="font-serif text-[18px] font-bold text-ink-900 tracking-title">
         大学印记
       </span>
-      <span className="label-mono text-ink-500 border border-line rounded px-1.5 py-0.5 hidden sm:inline-block">
+      <span className="label-mono whitespace-nowrap text-ink-500 border border-line rounded px-1.5 py-0.5 hidden sm:inline-block">
         综测助手
       </span>
     </Link>
@@ -83,7 +83,7 @@ export default function Navbar({
                 <Link
                   key={l.label}
                   to={l.href}
-                  className="rounded-[10px] px-3 py-2 text-body text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900"
+                  className="whitespace-nowrap rounded-[10px] px-3 py-2 text-body text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900"
                 >
                   {l.label}
                 </Link>
