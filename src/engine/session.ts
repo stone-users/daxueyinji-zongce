@@ -6,7 +6,7 @@ import { openDB, type IDBPDatabase } from 'idb'
 import type { AnswerMap, ModulePlan, Question, RulePack, Session, SessionItem, WizardProgress } from './types'
 import { MODULE_ORDER } from './types'
 import { scoreAnswer } from './scoring'
-import { scoreMid } from './rulepack'
+import { awardRefScore, scoreMid } from './rulepack'
 
 const SESSION_KEY = 'zongce.session.v1'
 const PROGRESS_KEY = 'zongce.wizard.v1'
@@ -61,6 +61,8 @@ export function isAnswered(q: Question, a: AnswerMap[string] | undefined): boole
       return a.hours > 0 || a.hoursOut > 0
     case 'comp':
       return a.entries.length > 0
+    case 'award':
+      return a.none || a.entries.length > 0
     default:
       return false
   }
@@ -82,9 +84,22 @@ function positiveAnswer(_q: Question, a: AnswerMap[string]): boolean {
       return a.hours > 0 || a.hoursOut > 0
     case 'comp':
       return a.entries.length > 0
+    case 'award':
+      // 「没有此类获奖（+0）」也是明确的有效作答
+      return a.none || a.entries.length > 0
     default:
       return false
   }
+}
+
+/** 条件显隐：depends_on 前置题当前答案是否让本题可见（前置未作答时一律隐藏） */
+export function isQuestionVisible(q: Question, plan: ModulePlan, answers: AnswerMap): boolean {
+  if (!q.dependsOn) return true
+  const ref = plan.questions.find((x) => x.id === q.dependsOn!.ref)
+  const a = answers[q.dependsOn.ref]
+  if (!ref || !a || !isAnswered(ref, a)) return false
+  const pos = positiveAnswer(ref, a)
+  return q.dependsOn.when === 'yes' ? pos : !pos
 }
 
 /** mutex 互斥：同组同时选择时取高不累加，返回被剔除的 question id 集合 */
@@ -145,7 +160,11 @@ export function buildSession(
     let lo = 0
     let hi = 0
     let hasRange = false
+    let visibleCount = 0
     for (const q of plan.questions) {
+      // 条件隐藏题：按未答处理（不计分、不计入模块题数），旧答案保留在暂存中以便条件恢复时还原
+      if (!isQuestionVisible(q, plan, answers)) continue
+      visibleCount++
       const a = answers[q.id]
       if (isAnswered(q, a)) done++
       if (!a || !isAnswered(q, a) || !positiveAnswer(q, a) || excluded.has(q.id)) continue
@@ -200,6 +219,25 @@ export function buildSession(
       if (Array.isArray(score)) notes.push(`区间分：建议 ${scoreMid(score)} 分，最终由评议小组在区间内定夺`)
       if (capped) notes.push(`已触发上限截断（红字提示过）`)
       if (q.routeTo) notes.push(`系统将填入「${q.routeTo}」栏，请把本说明一并填入得分说明`)
+      // award：自填非标准分 → 待评议确认；区间内自填 → 注明参考区间
+      if (a.kind === 'award') {
+        const customs = a.entries.filter((e) => e.custom)
+        if (customs.length) {
+          status = 'pending_review'
+          notes.push(`自填分数待评议确认：${customs.map((e) => `${e.role ? `${e.role}·` : ''}${e.level} ${e.score} 分`).join('、')}`)
+        }
+        const ranged = a.entries.filter((e) => Array.isArray(awardRefScore(q, e)))
+        if (ranged.length) {
+          notes.push(
+            `区间内自填：${ranged
+              .map((e) => {
+                const r = awardRefScore(q, e) as [number, number]
+                return `${e.role ? `${e.role}·` : ''}${e.level}（参考区间 ${r[0]}–${r[1]}）`
+              })
+              .join('、')}，最终由评议小组在区间内定夺`,
+          )
+        }
+      }
       if (q.evidence?.length && !uploaded.has(q.id)) {
         if (status === 'ok') status = 'needs_evidence'
         notes.push(`建议佐证：${q.evidence.join('、')}（未上传）`)
@@ -227,7 +265,7 @@ export function buildSession(
         hi += score
       }
     }
-    moduleStatus[plan.id] = plan.questions.length === 0 ? 'done' : done === 0 ? 'todo' : done >= plan.questions.length ? 'done' : 'partial'
+    moduleStatus[plan.id] = visibleCount === 0 ? 'done' : done === 0 ? 'todo' : done >= visibleCount ? 'done' : 'partial'
     const v = Math.round(lo * 100) / 100
     const h = Math.round(hi * 100) / 100
     perModule[plan.id] = hasRange ? `${v}–${h}` : v
