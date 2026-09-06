@@ -10,6 +10,7 @@ import {
   clearAll,
   evidenceKeys,
   isAnswered,
+  isQuestionVisible,
   loadProgress,
   saveProgress,
   saveSession,
@@ -298,12 +299,17 @@ export default function Wizard() {
   const modulePageCount = pages.filter((p) => p.type === 'module').length
   const isLastModule = page?.type === 'module' && pageIndex === modulePageCount - 1
 
+  // 条件显隐（depends_on）：前置题答案不满足的题不渲染、不计入总题数/未答数
+  const visibleOf = (p: ModulePlan) => p.questions.filter((q) => isQuestionVisible(q, p, answers))
+  const curVisible = curPlan ? visibleOf(curPlan) : []
+
   const entries: MapEntry[] = plans
     .map((p, m) => ({ p, m }))
     .filter(({ p }) => p.questions.length > 0)
     .map(({ p, m }) => {
-      const answered = p.questions.filter((q) => isAnswered(q, answers[q.id])).length
-      const status = answered === p.questions.length ? 'done' : answered > 0 ? 'partial' : 'todo'
+      const vis = visibleOf(p)
+      const answered = vis.filter((q) => isAnswered(q, answers[q.id])).length
+      const status = answered === vis.length && vis.length > 0 ? 'done' : answered > 0 ? 'partial' : 'todo'
       return {
         id: p.id,
         name: p.name,
@@ -311,7 +317,7 @@ export default function Wizard() {
         active: page?.type === 'module' && page.m === m,
         clickable: true, // 未答不卡人：任何模块都可随时跳转
         done: answered,
-        total: p.questions.length,
+        total: vis.length,
       }
     })
   const penaltyPageIdx = pages.findIndex((p) => p.type === 'penalty')
@@ -341,7 +347,8 @@ export default function Wizard() {
         onJump={handleMapJump}
       />
       <div className="mx-auto flex max-w-marketing items-start gap-8 px-4 sm:px-6">
-        <div className="hidden py-8 lg:block">
+        {/* 左侧进度地图：sticky 悬挂在导航栏下方，长页滚动时保持可见；自身超高可内部滚动 */}
+        <div className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto py-8 lg:block">
           <ProgressMap entries={entries} closing={closing} onJump={handleMapJump} />
         </div>
 
@@ -362,14 +369,14 @@ export default function Wizard() {
                     name={curPlan.name}
                     index={page.m}
                     total={plans.length}
-                    questionCount={curPlan.questions.length}
-                    answeredCount={curPlan.questions.filter((q) => isAnswered(q, answers[q.id])).length}
+                    questionCount={curVisible.length}
+                    answeredCount={curVisible.filter((q) => isAnswered(q, answers[q.id])).length}
                     maxScore={curPlan.maxScore}
                     note={curPlan.note && curPlan.note.length <= 60 ? curPlan.note : undefined}
                   />
                   {/* 模块长页：所有题卡纵向排列，向下滚动连续作答 */}
                   <div className="mt-6 space-y-6">
-                    {curPlan.questions.map((q, qi) => (
+                    {curVisible.map((q, qi) => (
                       <div
                         key={q.id}
                         id={anchorId(q.id)}
