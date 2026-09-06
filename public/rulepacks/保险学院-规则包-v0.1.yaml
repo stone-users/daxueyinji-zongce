@@ -12,8 +12,8 @@
 meta:
   university: 中央财经大学
   college: 保险学院
-  version: "0.2"
-  review_status: reviewed         # ✅ 2026-09-04 双人交叉校对通过
+  version: "0.3"
+  review_status: reviewed         # ✅ 2026-09-04 双人交叉校对通过；2026-09-06 补全全部条目原文依据
   source_doc: 保险学院综测细则.pdf（2024年3月修订）
   extracted: 2026-09-04
   reviewers: [梁育豪, 张育豪]
