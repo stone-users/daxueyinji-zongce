@@ -245,6 +245,21 @@ export function scoreAnswer(q: Question, a: AnswerValue): { score: Score; note?:
       const mids = a.entries.map((e) => scoreMid(e.score) ?? 0)
       return { score: mids.reduce((s, x) => s + x, 0) }
     }
+    case 'award': {
+      // 获奖记录卡：none → 0；entries → 按 aggregate 取 sum / max
+      if (a.none || a.entries.length === 0) return { score: 0, note: a.none ? '无此类获奖，计 0 分' : undefined }
+      const vals = a.entries.map((e) => e.score)
+      let score = q.award?.aggregate === 'max' ? Math.max(...vals) : vals.reduce((s, x) => s + x, 0)
+      score = Math.round(score * 100) / 100
+      if (q.cap != null && score > q.cap) {
+        return { score: q.cap, capped: true, capValue: q.cap, note: `本项加分上限 ${q.cap} 分，已按上限计入` }
+      }
+      const detail = a.entries.map((e) => `${e.role ? `${e.role}·` : ''}${e.level} ${e.score}`).join(' + ')
+      const notes = [detail]
+      if (q.award?.aggregate === 'max') notes.push('取高不累加')
+      if (a.entries.some((e) => e.custom)) notes.push('含自填分数（非标准分值），待评议确认')
+      return { score, note: notes.join('；') }
+    }
     default:
       return { score: null }
   }
