@@ -59,7 +59,7 @@ export function ProgressMap({
   )
 
   return (
-    <nav className="sticky top-20 w-[240px] shrink-0">
+    <nav className="w-[240px] shrink-0">
       <p className="label-mono mb-3 px-3 text-ink-300">PROGRESS MAP</p>
       <ul className="space-y-0.5">{entries.map((e, i) => renderRow(e, i, false))}</ul>
       <div className="my-3 border-t border-line" />
