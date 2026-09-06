@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Question } from '@/engine/types'
-import { scoreMid } from '@/engine/rulepack'
+import type { AwardEntry, Question } from '@/engine/types'
+import { awardRefScore, scoreMid } from '@/engine/rulepack'
 import StampBadge from './StampBadge'
 
 // ---------------------------------------------------------------------------
@@ -416,6 +416,256 @@ export function VolunteerHours({
           : `${hours} 小时 × ${rate} 分/小时 = +${total}`}
         {q.cap != null && <span className="ml-2 font-sans text-caption font-normal text-ink-500">上限 {q.cap} 分</span>}
       </p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 5.7 award-list · 获奖记录卡：逐条添加（身份 → 级别 → 分数 级联），sum/max 聚合
+// ---------------------------------------------------------------------------
+
+type AwardValue = { none: boolean; entries: AwardEntry[] }
+
+export function AwardList({
+  q,
+  value,
+  onChange,
+}: {
+  q: Question
+  value: AwardValue | null
+  onChange: (v: AwardValue) => void
+}) {
+  const spec = q.award
+  const entries = value?.entries ?? []
+  const none = value?.none ?? false
+  // 级联选择状态（ hooks 须在早退之前）
+  const [adding, setAdding] = useState(false)
+  const [role, setRole] = useState<string | null>(null)
+  const [level, setLevel] = useState<string | null>(null)
+  const [scoreText, setScoreText] = useState('')
+
+  if (!spec) return <p className="text-caption text-ink-500">本题分值结构缺失，请略过。</p>
+
+  const needRole = !!spec.roles?.length
+  const ref = level ? awardRefScore(q, { role: role ?? undefined, level }) : null
+  const refRange = Array.isArray(ref) ? ref : null
+  const scoreNum = Number(scoreText)
+  const scoreValid = scoreText.trim() !== '' && Number.isFinite(scoreNum) && scoreNum >= 0
+
+  const pickLevel = (lv: string) => {
+    setLevel(lv)
+    const r = awardRefScore(q, { role: role ?? undefined, level: lv })
+    // 固定分预填标准分；区间预填中值（输入框仍限定在区间内）
+    setScoreText(r == null ? '' : Array.isArray(r) ? String(scoreMid(r)) : String(r))
+  }
+
+  const resetPicker = () => {
+    setRole(null)
+    setLevel(null)
+    setScoreText('')
+  }
+
+  const confirmEntry = () => {
+    if (!level || !scoreValid || (needRole && !role)) return
+    let v = scoreNum
+    if (refRange) v = Math.min(refRange[1], Math.max(refRange[0], v)) // 区间分值限定 [lo,hi]
+    v = Math.round(v * 100) / 100
+    const custom = typeof ref === 'number' && v !== ref // 改过标准固定分 → 待评议确认
+    const entry: AwardEntry = {
+      ...(needRole ? { role: role! } : {}),
+      level,
+      score: v,
+      ...(custom ? { custom: true } : {}),
+    }
+    onChange({ none: false, entries: [...entries, entry] })
+    resetPicker() // 保持添加态，方便继续 push 下一条
+  }
+
+  const removeEntry = (i: number) => {
+    const next = entries.filter((_, ei) => ei !== i)
+    onChange({ none: false, entries: next })
+  }
+
+  const chip = (label: string, active: boolean, onClick: () => void) => (
+    <button
+      key={label}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-full border px-4 py-1.5 text-[14px] transition-colors',
+        active ? 'border-primary bg-primary text-primary-foreground' : 'border-line bg-card text-ink-700 hover:border-primary/50',
+      )}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div className="space-y-4">
+      {/* 未作答态：两个大按钮 */}
+      {entries.length === 0 && !none && !adding && (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="rounded-[12px] border border-line bg-card px-4 py-4 text-[16px] font-medium text-ink-700 transition-all duration-200 ease-out-expo hover:border-primary/50"
+          >
+            + 添加一条获奖
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ none: true, entries: [] })}
+            className="rounded-[12px] border border-line bg-card px-4 py-4 text-[16px] font-medium text-ink-700 transition-all duration-200 ease-out-expo hover:border-primary/50"
+          >
+            没有此类获奖（+0）
+          </button>
+        </div>
+      )}
+
+      {/* 「没有此类获奖」已答态 */}
+      {none && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-paper-100 px-4 py-4">
+          <span className="text-body text-ink-700">已标记：没有此类获奖，计 0 分</span>
+          <button
+            type="button"
+            onClick={() => {
+              onChange({ none: false, entries: [] })
+              setAdding(true)
+            }}
+            className="ml-auto rounded-[10px] border border-line bg-card px-3.5 py-1.5 text-caption text-ink-700 transition-colors hover:border-primary/50"
+          >
+            改为添加获奖
+          </button>
+        </div>
+      )}
+
+      {/* 已添加的记录列表 */}
+      {entries.length > 0 && (
+        <div className="space-y-2.5">
+          {entries.map((e, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-[12px] bg-paper-100 px-4 py-3">
+              <span className="min-w-0 flex-1 text-body text-ink-900">
+                {e.role ? `${e.role} · ` : ''}
+                {e.level}
+                {e.custom && (
+                  <span className="ml-2 rounded-[6px] border border-warning px-1.5 py-0.5 text-[11px] text-warning">自填·待评议确认</span>
+                )}
+              </span>
+              <span className="font-mono text-[15px] font-semibold tabular-nums text-ink-900">+{e.score}</span>
+              <button
+                type="button"
+                onClick={() => removeEntry(i)}
+                className="inline-flex items-center gap-1 rounded-[8px] border border-line px-2.5 py-1.5 text-caption text-danger transition-colors hover:bg-danger-soft"
+                aria-label="删除该条"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 级联添加表单：身份 → 级别 → 分数 */}
+      {adding && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-3 rounded-[12px] border border-line bg-card px-4 py-4"
+        >
+          {needRole && (
+            <div>
+              <p className="mb-2 text-caption text-ink-500">第一步 · 你的身份</p>
+              <div className="flex flex-wrap gap-2">
+                {spec.roles!.map((r) =>
+                  chip(r, role === r, () => {
+                    setRole(r)
+                    setLevel(null)
+                    setScoreText('')
+                  }),
+                )}
+              </div>
+            </div>
+          )}
+          {(!needRole || role) && (
+            <div>
+              <p className="mb-2 text-caption text-ink-500">{needRole ? '第二步' : '第一步'} · 获奖级别</p>
+              <div className="flex flex-wrap gap-2">{spec.levels.map((lv) => chip(lv, level === lv, () => pickLevel(lv)))}</div>
+            </div>
+          )}
+          {level && (
+            <div>
+              <p className="mb-2 text-caption text-ink-500">
+                {needRole ? '第三步' : '第二步'} · 分数
+                {refRange && <span className="ml-1 text-ink-700">参考区间 {refRange[0]}–{refRange[1]} 分（区间内自填）</span>}
+                {typeof ref === 'number' && <span className="ml-1 text-ink-700">参考分 +{ref} 分（可修改）</span>}
+                {ref == null && <span className="ml-1 text-warning">该组合无标准分，请按评议口径填写</span>}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={scoreText}
+                  min={refRange ? refRange[0] : 0}
+                  max={refRange ? refRange[1] : undefined}
+                  onChange={(e) => setScoreText(e.target.value)}
+                  className="h-12 w-28 rounded-[10px] border border-line bg-card px-3 text-center font-mono text-[24px] font-semibold tabular-nums text-ink-900 focus:border-primary focus:outline-none"
+                />
+                <span className="text-body text-ink-500">分</span>
+                <button
+                  type="button"
+                  disabled={!scoreValid || (needRole && !role)}
+                  onClick={confirmEntry}
+                  className="ml-auto rounded-[10px] bg-primary px-5 py-2.5 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  确认添加
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdding(false)
+                    resetPicker()
+                  }}
+                  className="rounded-[10px] border border-line bg-card px-4 py-2.5 text-[14px] text-ink-700 transition-colors hover:bg-paper-100"
+                >
+                  收起
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* 已答列表态的底部操作：继续添加 / 清零重来 */}
+      {(entries.length > 0 || adding) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {!adding && (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="rounded-[10px] border border-line bg-card px-4 py-2 text-[14px] text-ink-700 transition-colors hover:border-primary/50"
+            >
+              + 添加一条获奖
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              onChange({ none: true, entries: [] })
+              setAdding(false)
+              resetPicker()
+            }}
+            className="rounded-[10px] border border-line bg-card px-4 py-2 text-[14px] text-ink-500 transition-colors hover:bg-paper-100"
+          >
+            没有此类获奖（+0）
+          </button>
+          {entries.length > 0 && (
+            <span className="ml-auto text-caption text-ink-500">
+              {spec.aggregate === 'max' ? '多条取最高一项计入（取高不累加）' : '多条累加计入'}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
