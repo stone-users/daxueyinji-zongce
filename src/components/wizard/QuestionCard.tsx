@@ -6,7 +6,7 @@ import HintBar from './HintBar'
 import RuleNote from './RuleNote'
 import EvidenceUploader from './EvidenceUploader'
 import CompSearch from './CompSearch'
-import { AnchorRadio, BoolCards, ConfirmCard, ExtPort, VolunteerHours, YesNoCount } from './widgets'
+import { AnchorRadio, AwardList, BoolCards, ConfirmCard, ExtPort, VolunteerHours, YesNoCount } from './widgets'
 
 /** 题卡通用容器：题号 + 实时分值 + 题干 + 控件 + 实时反馈 + 佐证 + 细则依据 */
 export default function QuestionCard({
@@ -92,6 +92,13 @@ export default function QuestionCard({
             venue={answer?.kind === 'volunteer' ? answer.venue : '校内'}
             capped={result.capped === true}
             onChange={(v) => onAnswer({ kind: 'volunteer', ...v })}
+          />
+        )}
+        {q.kind === 'award' && (
+          <AwardList
+            q={q}
+            value={answer?.kind === 'award' ? answer : null}
+            onChange={(v) => onAnswer({ kind: 'award', ...v })}
           />
         )}
         {(q.kind === 'comp' || q.kind === 'project' || q.kind === 'pub') && (
